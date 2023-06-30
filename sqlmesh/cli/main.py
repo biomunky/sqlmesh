@@ -7,6 +7,12 @@ import typing as t
 
 import click
 
+from rich.console import Console
+from rich.table import Table
+from rich.color import Color
+from random import choice
+
+
 from sqlmesh import debug_mode_enabled, enable_logging
 from sqlmesh.cli import error_handler
 from sqlmesh.cli import options as opt
@@ -19,7 +25,6 @@ from sqlmesh.utils.errors import MissingDependencyError
 def _sqlmesh_version() -> str:
     try:
         from sqlmesh import __version__
-
         return __version__
     except ImportError:
         return "0.0.0"
@@ -339,7 +344,21 @@ def audit(
 def fetchdf(ctx: click.Context, sql: str) -> None:
     """Runs a sql query and displays the results."""
     context = ctx.obj
-    context.console.log_success(context.fetchdf(sql))
+    df = context.fetchdf(sql)
+    table = Table(title=sql)
+
+    # won't work on all terminals
+    color_range = range(22, 190)
+
+    for i, col in enumerate(df.columns):
+        table.add_column(col)
+        table.columns[i].style = f"{Color.from_ansi(choice(color_range)).name}"
+
+    for row in df.itertuples(index=False):
+        table.add_row(*[str(i) for i in row])
+    console = Console()
+    console.print(table)
+
 
 
 @cli.command("info")
